@@ -1,0 +1,116 @@
+__license__   = 'Postcardware (http://en.wikipedia.org/wiki/Postcardware), contact author for postal address.'
+__copyright__ = '2011, Olek Poplavsky <woodenbits at gmail.com>'
+
+from calibre import strftime
+from calibre.web.feeds.news import BasicNewsRecipe
+
+class Readitlater(BasicNewsRecipe):
+    title                 = 'Readability'
+    __author__            = 'Olek Poplavsky'
+    description           = '''Custom news feeds for Readability. Go to readability.com to
+                               setup up your account, then add some articles to your reading list
+                               and/or favorites. Fill in your account username and password.'''
+    publisher             = 'Woodenbits'
+    category              = 'news, custom'
+    oldest_article        = 30
+    max_articles_per_feed = 50
+    no_stylesheets        = True # default False
+    use_embedded_content  = False # default None
+    needs_subscription    = True # default False
+    auto_cleanup = False # default False
+    delay = 0.2 # default 0
+    simultaneous_downloads = 1 # set to 1 anyway if delay is > 0
+    timeout = 120.0 # in seconds, default 120
+
+    INDEX                 = u'http://readability.com'
+
+    #preprocess_regexps = [
+    #  (re.compile(r'<aside id="rdb-footnotes".*</body>', re.DOTALL|re.IGNORECASE),
+    #    lambda match: '</body>')
+    #]
+    keep_only_tags = [
+        dict(name='header', attrs={'id':'rdb-content-header'}),
+        dict(name='section', attrs={'id':'rdb-article-content'})
+      ]
+
+    remove_tags = [
+        dict(name='a', attrs={'id':'read-later-button'}),
+        dict(name='div', attrs={'class':'doc_functions_bar'})
+      ]
+
+    extra_css = '''
+                    h1{font-weight:bold;font-size:x-large;}
+                    h2{font-weight:bold;font-size:large;}
+                    h3{font-weight:bold;font-size:normal;}
+                    h4{font-weight:bold;font-style:italic;font-size:normal;}
+                    h5{font-weight:bold;font-style:italic;font-size:normal;color:#333333;}
+                '''
+
+    def get_browser(self):
+        br = BasicNewsRecipe.get_browser()
+        if self.username is not None:
+            br.open(self.INDEX)
+            # br.select_form(nr=0)
+            br.select_form(predicate=lambda f: 'id' in f.attrs and f.attrs['id'] == 'login-form')
+            br['username'] = self.username
+            if self.password is not None:
+               br['password'] = self.password
+            br.submit()
+        return br
+
+    def get_feeds(self):
+        self.report_progress(0, ('Generating list of feeds...'))
+        lfeeds = []
+
+        reading_list_url = self.INDEX + u'/' + self.username
+        favorites_url = reading_list_url + u'/favorites'
+        lfeeds.append((u'Reading List', reading_list_url))
+        lfeeds.append((u'Favorites', favorites_url))
+
+        return lfeeds
+
+    def parse_index(self):
+        totalfeeds = []
+        lfeeds = self.get_feeds()
+        for feedobj in lfeeds:
+            feedtitle, feedurl = feedobj
+            self.report_progress(0, ('Fetching feed')+' %s...'%(feedtitle if feedtitle else feedurl))
+            articles = []
+            soup = self.index_to_soup(feedurl)
+            ritem = soup.find('ul',attrs={'id':'rdb-reading-list'})
+            for item in ritem.findAll('li'):
+                description = ''
+                processed_article_tag = item.find('a',attrs={'class':'list-article-title'})
+                # source_article_tag = item.find('a',attrs={'class':'article-url'})
+                if processed_article_tag and processed_article_tag.has_key('href'):
+                    date_tag = item.find('time',attrs={'id':'article-timestamp'})
+                    description_tag = item.find('p',attrs={'class':'article-summary'})
+                    author_tag = item.find('span',attrs={'id':'article-author'})
+
+                    url         = self.INDEX + processed_article_tag['href']
+                    title       = self.tag_to_string(processed_article_tag)
+                    date        = self.tag_to_string(date_tag)
+                    description = self.tag_to_string(description_tag)
+                    author      = self.tag_to_string(author_tag)
+                    articles.append({
+                                      'title'       : title,
+                                      'date'        : date,
+                                      'description' : description,
+                                      'author'      : author,
+                                      'url'         : url,
+                                      'description' : description
+                                    })
+            totalfeeds.append((feedtitle, articles))
+        return totalfeeds
+
+    def preprocess_html(self, soup):
+        for original_article_tag in soup.findAll('a', attrs={'id':'article-url'}):
+            original_article_url = original_article_tag['href']
+            if original_article_url is not None:
+                import re
+                original_article_url = re.sub(r"^https?://", '', original_article_url)
+                del original_article_tag['style']
+                original_article_tag.contents[0].replaceWith('Original:&nbsp;&nbsp;' + original_article_url)
+                # original_article_tag.replaceWith(original_article_url)
+        return soup
+
