@@ -12,14 +12,14 @@ class Readitlater(BasicNewsRecipe):
                                and/or favorites. Fill in your account username and password.'''
     publisher             = 'Woodenbits'
     category              = 'news, custom'
-    oldest_article        = 30
-    max_articles_per_feed = 50
+    oldest_article        = 90
+    max_articles_per_feed = 100
     no_stylesheets        = True # default False
     use_embedded_content  = False # default None
     needs_subscription    = True # default False
-    auto_cleanup = False # default False
-    delay = 0.2 # default 0
-    simultaneous_downloads = 1 # set to 1 anyway if delay is > 0
+    auto_cleanup = True # default False
+#    delay = 0.2 # default 0
+    simultaneous_downloads = 5 # set to 1 anyway if delay is > 0
     timeout = 120.0 # in seconds, default 120
 
     INDEX                 = u'http://readability.com'
@@ -28,15 +28,16 @@ class Readitlater(BasicNewsRecipe):
     #  (re.compile(r'<aside id="rdb-footnotes".*</body>', re.DOTALL|re.IGNORECASE),
     #    lambda match: '</body>')
     #]
-    keep_only_tags = [
-        dict(name='header', attrs={'id':'rdb-content-header'}),
-        dict(name='section', attrs={'id':'rdb-article-content'})
-      ]
 
-    remove_tags = [
-        dict(name='a', attrs={'id':'read-later-button'}),
-        dict(name='div', attrs={'class':'doc_functions_bar'})
-      ]
+    #keep_only_tags = [
+    #    dict(name='header', attrs={'id':'rdb-content-header'}),
+    #    dict(name='section', attrs={'id':'rdb-article-content'})
+    #  ]
+
+    #remove_tags = [
+    #    dict(name='a', attrs={'id':'read-later-button'}),
+    #    dict(name='div', attrs={'class':'doc_functions_bar'})
+    #  ]
 
     extra_css = '''
                     h1{font-weight:bold;font-size:x-large;}
@@ -81,13 +82,15 @@ class Readitlater(BasicNewsRecipe):
             for item in ritem.findAll('li'):
                 description = ''
                 processed_article_tag = item.find('a',attrs={'class':'list-article-title'})
-                # source_article_tag = item.find('a',attrs={'class':'article-url'})
-                if processed_article_tag and processed_article_tag.has_key('href'):
+                source_article_tag = item.find('a',attrs={'class':'article-url'})
+                article_tag = source_article_tag
+                if article_tag and article_tag.has_key('href') and processed_article_tag:
                     date_tag = item.find('time',attrs={'id':'article-timestamp'})
                     description_tag = item.find('p',attrs={'class':'article-summary'})
                     author_tag = item.find('span',attrs={'id':'article-author'})
 
-                    url         = self.INDEX + processed_article_tag['href']
+                    # url         = self.INDEX + article_tag['href']
+                    url         = article_tag['href']
                     title       = self.tag_to_string(processed_article_tag)
                     date        = self.tag_to_string(date_tag)
                     description = self.tag_to_string(description_tag)
@@ -113,4 +116,14 @@ class Readitlater(BasicNewsRecipe):
                 original_article_tag.contents[0].replaceWith('Original:&nbsp;&nbsp;' + original_article_url)
                 # original_article_tag.replaceWith(original_article_url)
         return soup
+
+    def populate_article_metadata(self, article, soup, first):
+        if first:
+          body = soup.find('body')
+          if article.summary:
+            body.insert(1,'<h6>Summary:&nbsp;&nbsp;' + article.summary + '</h6>')
+          if article.author:
+            body.insert(1,'<h3>Author:&nbsp;&nbsp;' + article.author + '</h3>')
+          body.insert(1,'<h2>Title:&nbsp;&nbsp;' + article.title + '</h2>')
+          body.insert(1,'<h6>Original:&nbsp;&nbsp;<a href="' + article.url + '>' + article.url +'</a></h6>')
 
