@@ -50,9 +50,13 @@ class Readitlater(BasicNewsRecipe):
     def get_browser(self):
         br = BasicNewsRecipe.get_browser()
         if self.username is not None:
-            br.open(self.INDEX)
-            # br.select_form(nr=0)
-            br.select_form(predicate=lambda f: 'id' in f.attrs and f.attrs['id'] == 'login-form')
+            login_url = self.INDEX + u'/login'
+            br.open(login_url)
+            #for form in br.forms():
+            #    print "Form name:", form.name
+            #    print form
+            #br.select_form(predicate=lambda f: 'id' in f.attrs and f.attrs['id'] == 'login-form')
+            br.form = list(br.forms())[0]
             br['username'] = self.username
             if self.password is not None:
                br['password'] = self.password
