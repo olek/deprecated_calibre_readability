@@ -54,7 +54,7 @@ class Readitlater(BasicNewsRecipe):
         favorites_url = base_url + u'/favorites'
         self.report_progress(0, (favorites_url))
         lfeeds.append((u'Reading List', reading_list_url))
-        # lfeeds.append((u'Favorites', favorites_url))
+        lfeeds.append((u'Favorites', favorites_url))
 
         return lfeeds
 
