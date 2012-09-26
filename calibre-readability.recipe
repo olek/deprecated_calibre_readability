@@ -3,6 +3,8 @@ __copyright__ = '2011, Olek Poplavsky <woodenbits at gmail.com>'
 
 from calibre import strftime
 from calibre.web.feeds.news import BasicNewsRecipe
+import logging
+import sys
 
 class Readitlater(BasicNewsRecipe):
     title                 = 'Readability'
@@ -22,7 +24,7 @@ class Readitlater(BasicNewsRecipe):
     simultaneous_downloads = 5 # set to 1 anyway if delay is > 0
     timeout = 120.0 # in seconds, default 120
 
-    INDEX                 = u'http://readability.com'
+    INDEX                 = u'https://www.readability.com'
 
     extra_css = '''
                     h1{font-weight:bold;font-size:x-large;}
@@ -34,14 +36,13 @@ class Readitlater(BasicNewsRecipe):
 
     def get_browser(self):
         br = BasicNewsRecipe.get_browser()
-        if self.username is not None:
-            login_url = self.INDEX + u'/login'
+        if self.username is not None and self.password is not None:
+            login_url = u'https://www.readability.com/login/'
             br.open(login_url)
             br.form = list(br.forms())[0]
             br['username'] = self.username
-            if self.password is not None:
-               br['password'] = self.password
-            br.submit()
+            br['password'] = self.password
+            response = br.submit()
         return br
 
     def get_feeds(self):
@@ -50,7 +51,6 @@ class Readitlater(BasicNewsRecipe):
 
         base_url = self.INDEX + u'/' + self.username
         reading_list_url = base_url + u'/latest'
-        self.report_progress(0, (reading_list_url))
         favorites_url = base_url + u'/favorites'
         self.report_progress(0, (favorites_url))
         lfeeds.append((u'Reading List', reading_list_url))
