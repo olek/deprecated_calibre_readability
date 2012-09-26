@@ -3,6 +3,8 @@ __copyright__ = '2011, Olek Poplavsky <woodenbits at gmail.com>'
 
 from calibre import strftime
 from calibre.web.feeds.news import BasicNewsRecipe
+import logging
+import sys
 
 class Readitlater(BasicNewsRecipe):
     title                 = 'Readability'
@@ -22,22 +24,7 @@ class Readitlater(BasicNewsRecipe):
     simultaneous_downloads = 5 # set to 1 anyway if delay is > 0
     timeout = 120.0 # in seconds, default 120
 
-    INDEX                 = u'http://readability.com'
-
-    #preprocess_regexps = [
-    #  (re.compile(r'<aside id="rdb-footnotes".*</body>', re.DOTALL|re.IGNORECASE),
-    #    lambda match: '</body>')
-    #]
-
-    #keep_only_tags = [
-    #    dict(name='header', attrs={'id':'rdb-content-header'}),
-    #    dict(name='section', attrs={'id':'rdb-article-content'})
-    #  ]
-
-    #remove_tags = [
-    #    dict(name='a', attrs={'id':'read-later-button'}),
-    #    dict(name='div', attrs={'class':'doc_functions_bar'})
-    #  ]
+    INDEX                 = u'https://www.readability.com'
 
     extra_css = '''
                     h1{font-weight:bold;font-size:x-large;}
@@ -49,26 +36,23 @@ class Readitlater(BasicNewsRecipe):
 
     def get_browser(self):
         br = BasicNewsRecipe.get_browser()
-        if self.username is not None:
+        if self.username is not None and self.password is not None:
             login_url = self.INDEX + u'/login'
             br.open(login_url)
-            #for form in br.forms():
-            #    print "Form name:", form.name
-            #    print form
-            #br.select_form(predicate=lambda f: 'id' in f.attrs and f.attrs['id'] == 'login-form')
             br.form = list(br.forms())[0]
             br['username'] = self.username
-            if self.password is not None:
-               br['password'] = self.password
-            br.submit()
+            br['password'] = self.password
+            response = br.submit()
         return br
 
     def get_feeds(self):
         self.report_progress(0, ('Generating list of feeds...'))
         lfeeds = []
 
-        reading_list_url = self.INDEX + u'/' + self.username
-        favorites_url = reading_list_url + u'/favorites'
+        base_url = self.INDEX + u'/' + self.username
+        reading_list_url = base_url + u'/latest'
+        favorites_url = base_url + u'/favorites'
+        self.report_progress(0, (favorites_url))
         lfeeds.append((u'Reading List', reading_list_url))
         lfeeds.append((u'Favorites', favorites_url))
 
@@ -86,23 +70,22 @@ class Readitlater(BasicNewsRecipe):
             for item in ritem.findAll('li'):
                 description = ''
                 processed_article_tag = item.find('a',attrs={'class':'list-article-title'})
-                source_article_tag = item.find('a',attrs={'class':'article-url'})
-                article_tag = source_article_tag
-                if article_tag and article_tag.has_key('href') and processed_article_tag:
-                    date_tag = item.find('time',attrs={'id':'article-timestamp'})
-                    description_tag = item.find('p',attrs={'class':'article-summary'})
-                    author_tag = item.find('span',attrs={'id':'article-author'})
-
-                    # url         = self.INDEX + article_tag['href']
-                    url         = article_tag['href']
-                    title       = self.tag_to_string(processed_article_tag)
+                article = item.find('div',attrs={'class':'article'})
+                if article:
+                    description_tag = article.find('p')
+                    date_tag = article.find('time')
+                    author_tag = article.find('span',attrs={'class':'article-domain'})
+                    url         = article.find('a',attrs={'title':'Read this article'})['href']
+                    if not url.startswith("http"):
+                        url = self.INDEX + url
+                    title_tag   = article.find('h3')
+                    title       = self.tag_to_string(title_tag)
                     date        = self.tag_to_string(date_tag)
                     description = self.tag_to_string(description_tag)
                     author      = self.tag_to_string(author_tag)
                     articles.append({
                                       'title'       : title,
                                       'date'        : date,
-                                      'description' : description,
                                       'author'      : author,
                                       'url'         : url,
                                       'description' : description
