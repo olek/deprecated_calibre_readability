@@ -76,6 +76,8 @@ class Readitlater(BasicNewsRecipe):
                     date_tag = article.find('time')
                     author_tag = article.find('span',attrs={'class':'article-domain'})
                     url         = article.find('a',attrs={'title':'Read this article'})['href']
+                    if not url.startswith("http"):
+                        url = self.INDEX + url
                     title_tag   = article.find('h3')
                     title       = self.tag_to_string(title_tag)
                     date        = self.tag_to_string(date_tag)
