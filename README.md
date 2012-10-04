@@ -81,6 +81,14 @@ Go, find some good articles...
 
 ## License
 
-Ah, and about license. This is Postcardware. If you like this program and find it useful, send me a
-postcard (you know, that archaic thing printed on real paper) that preferably features something
-from your place (city, state, country). Email me at [woodenbits at gmail.com] for my postal address.
+Ah, and about license. This is freeware. If you wish, let it be MIT
+license. If you like this program and find it useful, you could send me
+a postcard (you know, that archaic thing printed on real paper) that
+preferably features something from your place (city, state, country).
+Email me at [woodenbits at gmail.com] for my postal address.
+
+## Contributors
+
+Thank you for helping me to keep this project afloat!
+
+* Muness Alrubaie (muness)
