@@ -24,6 +24,10 @@ class Readitlater(BasicNewsRecipe):
     simultaneous_downloads = 5 # set to 1 anyway if delay is > 0
     timeout = 120.0 # in seconds, default 120
 
+    add_metadata           = True # if you want metadata before each article
+    archive                = False # automatically archive downloaded articles
+    archive_items = []
+
     INDEX                 = u'https://www.readability.com'
 
     extra_css = '''
@@ -36,6 +40,7 @@ class Readitlater(BasicNewsRecipe):
 
     def get_browser(self):
         br = BasicNewsRecipe.get_browser(self)
+        br.set_handle_referer(True)
         if self.username is not None and self.password is not None:
             login_url = self.INDEX + u'/login'
             br.open(login_url)
@@ -90,7 +95,10 @@ class Readitlater(BasicNewsRecipe):
                                       'url'         : url,
                                       'description' : description
                                     })
-            totalfeeds.append((feedtitle, articles))
+            if len(articles) > 0:
+                totalfeeds.append((feedtitle, articles))
+        if len(totalfeeds) < 1:
+            self.abort_recipe_processing("You don't have any articles in your Reading List")
         return totalfeeds
 
     def preprocess_html(self, soup):
@@ -106,11 +114,23 @@ class Readitlater(BasicNewsRecipe):
 
     def populate_article_metadata(self, article, soup, first):
         if first:
-          body = soup.find('body')
-          if article.summary:
-            body.insert(1,'<h6>Summary:&nbsp;&nbsp;' + article.summary + '</h6>')
-          if article.author:
-            body.insert(1,'<h3>Author:&nbsp;&nbsp;' + article.author + '</h3>')
-          body.insert(1,'<h2>Title:&nbsp;&nbsp;' + article.title + '</h2>')
-          body.insert(1,'<h6>Original:&nbsp;&nbsp;<a href="' + article.url + '>' + article.url +'</a></h6>')
+            # sometimes downloading fails. here we know it was successfully downloaded.
+            self.archive_items.append(article.url + '/ajax/archive')
 
+            if self.add_metadata:
+                body = soup.find('body')
+                if article.summary:
+                    body.insert(1,'<h6>Summary:&nbsp;&nbsp;' + article.summary + '</h6>')
+                if article.author:
+                    body.insert(1,'<h3>Author:&nbsp;&nbsp;' + article.author + '</h3>')
+                body.insert(1,'<h2>Title:&nbsp;&nbsp;' + article.title + '</h2>')
+                body.insert(1,'<h6>Original:&nbsp;&nbsp;<a href="' + article.url + '>' + article.url +'</a></h6>')
+
+    def cleanup(self):
+        if self.archive:
+            for item in self.archive_items:
+                try:
+                    self.report_progress(0, ("Archiving " + item))
+                    self.browser.open(item);
+                except Exception, e:
+                    pass
