@@ -14,4 +14,4 @@ echo "No password provided"
 exit 1
 fi
 
-ebook-convert ./calibre-readability.recipe out -vv --debug-pipeline out.pipeline --test --username $USERNAME --password $PASSWORD
+/Applications/calibre.app/Contents/MacOS/ebook-convert ./calibre-readability.recipe out -vv --debug-pipeline out.pipeline --test --username $USERNAME --password $PASSWORD

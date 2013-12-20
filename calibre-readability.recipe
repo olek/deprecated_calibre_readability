@@ -1,3 +1,6 @@
+#! /usr/bin/env python
+
+
 __license__   = 'Postcardware (http://en.wikipedia.org/wiki/Postcardware), contact author for postal address.'
 __copyright__ = '2011, Olek Poplavsky <woodenbits at gmail.com>'
 
@@ -14,8 +17,8 @@ class Readitlater(BasicNewsRecipe):
                                and/or favorites. Fill in your account username and password.'''
     publisher             = 'Woodenbits'
     category              = 'news, custom'
-    oldest_article        = 90
-    max_articles_per_feed = 100
+    oldest_article        = 180
+    max_articles_per_feed = 200
     no_stylesheets        = True # default False
     use_embedded_content  = False # default None
     needs_subscription    = True # default False
@@ -55,8 +58,8 @@ class Readitlater(BasicNewsRecipe):
         lfeeds = []
 
         base_url = self.INDEX + u'/' + self.username
-        reading_list_url = base_url + u'/latest'
-        favorites_url = base_url + u'/favorites'
+        reading_list_url = base_url + u'/reading-list'
+        favorites_url = reading_list_url + '/favorites'
         self.report_progress(0, (favorites_url))
         lfeeds.append((u'Reading List', reading_list_url))
         lfeeds.append((u'Favorites', favorites_url))
@@ -71,30 +74,37 @@ class Readitlater(BasicNewsRecipe):
             self.report_progress(0, ('Fetching feed')+' %s...'%(feedtitle if feedtitle else feedurl))
             articles = []
             soup = self.index_to_soup(feedurl)
-            ritem = soup.find('ul',attrs={'id':'rdb-reading-list'})
-            for item in ritem.findAll('li'):
-                description = ''
-                processed_article_tag = item.find('a',attrs={'class':'list-article-title'})
-                article = item.find('div',attrs={'class':'article'})
-                if article:
-                    description_tag = article.find('p')
-                    date_tag = article.find('time')
-                    author_tag = article.find('span',attrs={'class':'article-domain'})
-                    url         = article.find('a',attrs={'title':'Read this article'})['href']
-                    if not url.startswith("http"):
-                        url = self.INDEX + url
-                    title_tag   = article.find('h3')
-                    title       = self.tag_to_string(title_tag)
-                    date        = self.tag_to_string(date_tag)
-                    description = self.tag_to_string(description_tag)
-                    author      = self.tag_to_string(author_tag)
-                    articles.append({
-                                      'title'       : title,
-                                      'date'        : date,
-                                      'author'      : author,
-                                      'url'         : url,
-                                      'description' : description
-                                    })
+            ritem = soup.find('ul',attrs={'class':'bookmark-list'})
+            for item in ritem.findAll('li', attrs={'class':'bookmark\n    \n    \n    \n    '}):
+                description = item.find('p',attrs={'class':'article-excerpt'})
+                processed_article_tag = item.find('h3',attrs={'class':'article-title'})
+#                print("...")
+#                print(description)
+#                print(processed_article_tag)
+# using same thing for description and description_tag because it's all I can find
+                description_tag = item.find('p',attrs={'class':'article-excerpt'})
+#                print(description_tag)
+# taking date_tag out because there don't seem to be datestamps any more :(
+#								date_tag = article.find('time')
+                author_tag = item.find('a',attrs={'class':'article-origin icon icon-favorite'})
+ #               print("*")
+ #               print(author_tag)
+                url         = item.find('a',attrs={'class':'article-origin icon icon-favorite'})['href']
+                if not url.startswith("http"):
+                		url = self.INDEX + url
+ #               print(url)
+                title_tag   = item.find('h3',attrs={'class':'article-title'})
+                title       = self.tag_to_string(title_tag)
+#                date        = self.tag_to_string(date_tag)
+                description = self.tag_to_string(description_tag)
+                author      = self.tag_to_string(author_tag)
+                articles.append({
+																	'title'       : title,
+#																	'date'        : date,
+																	'author'      : author,
+																	'url'         : url,
+																	'description' : description
+																})
             if len(articles) > 0:
                 totalfeeds.append((feedtitle, articles))
         if len(totalfeeds) < 1:
