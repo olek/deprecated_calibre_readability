@@ -59,10 +59,18 @@ class Readitlater(BasicNewsRecipe):
 
         base_url = self.INDEX
         reading_list_url = base_url + u'/reading-list'
-        favorites_url = reading_list_url + '/favorites'
+        p2_url = reading_list_url + u'?page=2'
+        p3_url = reading_list_url + u'?page=3'
+        p4_url = reading_list_url + u'?page=4'
+        p5_url = reading_list_url + u'?page=5'
+ #       favorites_url = reading_list_url + u'/favorites'
         self.report_progress(0, (favorites_url))
         lfeeds.append((u'Reading List', reading_list_url))
-        lfeeds.append((u'Favorites', favorites_url))
+        lfeeds.append((u'Reading List p2', p2_url))
+        lfeeds.append((u'Reading List p3', p3_url))
+        lfeeds.append((u'Reading List p4', p4_url))
+        lfeeds.append((u'Reading List p5', p5_url))
+#        lfeeds.append((u'Favorites', favorites_url))
 
         return lfeeds
 
